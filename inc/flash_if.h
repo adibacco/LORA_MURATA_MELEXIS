@@ -73,14 +73,9 @@ enum {
 /* Define the address from where user application will be loaded.
    Note: this area is reserved for the IAP code                  */
 #define FLASH_PAGE_STEP         FLASH_PAGE_SIZE           /* Size of page : 1 Kbyte */
-#define APPLICATION_ADDRESS     (uint32_t)0x08008000      /* Start user code address: ADDR_FLASH_PAGE_8 */
 
 /* Notable Flash addresses */
-#define USER_FLASH_END_ADDRESS        0x08040000
-
-/* Define the user application size */
-#define USER_FLASH_SIZE               ((uint32_t)0x00003000) /* Small default template application */
-
+#define USER_FLASH_END_ADDRESS        0x8030000
 
 
 
@@ -88,15 +83,10 @@ enum {
 /* ABSoulute value */
 #define ABS_RETURN(x,y)               (((x) < (y)) ? ((y)-(x)) : ((x)-(y)))
 
-/* Get the number of sectors from where the user program will be loaded */
-#define FLASH_SECTOR_NUMBER           ((uint32_t)(ABS_RETURN(APPLICATION_ADDRESS,FLASH_START_BANK1))>>12)
 
-/* Compute the mask to test if the Flash memory, where the user program will be
-  loaded, is write protected */
-#define FLASH_PROTECTED_SECTORS       (~(uint32_t)((1 << FLASH_SECTOR_NUMBER) - 1))
 /* Exported functions ------------------------------------------------------- */
 void FLASH_If_Init(void);
-uint32_t FLASH_If_Erase(uint32_t start, uint32_t end);
+uint32_t FLASH_If_Erase(uint32_t start, uint32_t size);
 uint32_t FLASH_If_Write(uint32_t destination, uint32_t *p_source, uint32_t length);
 uint32_t FLASH_If_Erase_Sector(uint32_t start);
 void FLASH_If_Read(uint32_t addr , uint8_t *data , uint16_t Byte_Num);

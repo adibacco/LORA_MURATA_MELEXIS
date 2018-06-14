@@ -66,6 +66,16 @@
 			<locationURI>PARENT-8-PROJECT_LOC/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dma.c</locationURI>
 		</link>
 		<link>
+			<name>Drivers/STM32L0xx_HAL_Driver/stm32l0xx_hal_flash.c</name>
+			<type>1</type>
+			<locationURI>PARENT-8-PROJECT_LOC/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_flash.c</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32L0xx_HAL_Driver/stm32l0xx_hal_flash_ex.c</name>
+			<type>1</type>
+			<locationURI>PARENT-8-PROJECT_LOC/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_flash_ex.c</locationURI>
+		</link>
+		<link>
 			<name>Drivers/STM32L0xx_HAL_Driver/stm32l0xx_hal_gpio.c</name>
 			<type>1</type>
 			<locationURI>PARENT-8-PROJECT_LOC/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_gpio.c</locationURI>
@@ -134,6 +144,11 @@
 			<name>Projects/SW4STM32/startup_stm32l072xx.s</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/startup_stm32l072xx.s</locationURI>
+		</link>
+		<link>
+			<name>Projects/YNode/MLX90640.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/MLX90640.c</locationURI>
 		</link>
 		<link>
 			<name>Projects/YNode/MLX90640_API.c</name>

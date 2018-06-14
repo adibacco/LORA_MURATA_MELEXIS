@@ -47,8 +47,10 @@ void MLX90640_I2CInit()
 	  hi2c1.Init.DutyCycle       = I2C_DUTYCYCLE_2;
 	#elif (defined USE_STM32F0XX_NUCLEO) || (defined USE_STM32L0XX_NUCLEO) || (defined USE_B_L072Z_LRWAN1) || \
 	      (defined USE_STM32F3XX_NUCLEO) || (defined USE_STM32L4XX_NUCLEO)
-	  hi2c1.Init.Timing          = MLX90640_I2C_SPEED_100;
+	  hi2c1.Init.Timing          = MLX90640_I2C_SPEED_400;
 	#endif
+
+
 
 	if(HAL_I2C_Init(&hi2c1) != HAL_OK)
 	  {
@@ -75,19 +77,19 @@ int MLX90640_I2CRead(uint8_t slaveAddr, uint16_t startAddress, uint16_t nMemAddr
     cmd[0] = startAddress >> 8;
     cmd[1] = startAddress & 0x00FF;
     
-    i2c_stop(&hi2c1);
-    wait_us(5);
-    ack = i2c_write(&hi2c1, sa, cmd, 2, 1);
+    //HAL_Delay(1);
+    ack = i2c_write(&hi2c1, sa, cmd, 2, 0);
 
-    if (ack != 0x00)
+    if (ack < 0x00)
     {
         return -1;
     }
-             
+
     sa = sa | 0x01;
+    uint32_t ticks = HAL_GetTick();
     ack = i2c_read(&hi2c1, sa, i2cData, 2*nMemAddressRead, 0);
-    
-    if (ack != 0x00)
+    ticks = HAL_GetTick() - ticks;
+    if (ack < 0x00)
     {
         return -1;
     }
@@ -121,11 +123,10 @@ int MLX90640_I2CWrite(uint8_t slaveAddr, uint16_t writeAddress, uint16_t data)
     cmd[2] = data >> 8;
     cmd[3] = data & 0x00FF;
 
-    i2c_stop(&hi2c1);
-    wait_us(5);    
+    //HAL_Delay(1);
     ack = i2c_write(&hi2c1, sa, cmd, 4, 0);
 
-    if (ack != 0x00)
+    if (ack < 0x00)
     {
         return -1;
     }

@@ -77,6 +77,8 @@ int i2c_start(I2C_HandleTypeDef *i2c_dev) {
 int i2c_stop(I2C_HandleTypeDef *i2c_dev) {
 	I2C_TypeDef *i2c = (I2C_TypeDef *)(i2c_dev->Instance);
 
+	int timeout = FLAG_TIMEOUT;
+
 	// Generate the STOP condition
 	i2c->CR2 |= I2C_CR2_STOP;
 
@@ -191,6 +193,7 @@ int i2c_byte_write(I2C_HandleTypeDef *i2c_dev, int data) {
 
 	// Wait until the previous byte is transmitted
 	timeout = FLAG_TIMEOUT;
+	//uint32_t isr = i2c_dev->Instance->ISR;
 	while (__HAL_I2C_GET_FLAG(i2c_dev, I2C_FLAG_TXIS) == RESET) {
 		if ((timeout--) == 0) {
 			return 0;

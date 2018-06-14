@@ -54,6 +54,7 @@
 #include "version.h"
 #include "MLX90640_API.h"
 #include "MLX90640_I2C_Driver.h"
+#include "MLX90640.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -106,6 +107,7 @@
  * User application data
  */
 static uint8_t AppDataBuff[LORAWAN_APP_DATA_BUFF_SIZE];
+extern I2C_HandleTypeDef hi2c1;
 
 /*!
  * User application data structure
@@ -146,11 +148,8 @@ static LoRaMainCallback_t LoRaMainCallbacks = { HW_GetBatteryLevel,
                                                 LORA_ConfirmClass,
                                                 LORA_TxNeeded};
 
-static uint16_t mlx90640Frame[834];
-//static paramsMLX90640 mlx90640;
-static float mlx90640To[768];
 
-static void GetPixelsTemp();
+
 
 /*!
  * Specifies the state of the application LED
@@ -200,11 +199,33 @@ int main( void )
   /*Disbale Stand-by mode*/
   LPM_SetOffMode(LPM_APPLI_Id , LPM_Disable );
   
+  FLASH_If_Init();
+
+  MLX90640_I2CInit();
+
+  uint16_t reg;
+
+  MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &reg);
+  // Select STEP MODE
+  MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, 0x1903);
+  MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &reg);
+
+
+  MLX90640_GetEEPROM();
+
+  MLX90640_GetParameters();
+
+  MLX90640_GetPixelsTemp();
+
+  while (1) {
+
+	 HAL_Delay(1000);
+  }
+
   /* Configure the Lora Stack*/
   LORA_Init( &LoRaMainCallbacks, &LoRaParamInit);
   
   PRINTF("VERSION: %X\n\r", VERSION);
-  GetPixelsTemp();
   
   LORA_Join();
   
@@ -474,24 +495,7 @@ static void LORA_TxNeeded ( void )
   LORA_send( &AppData, LORAWAN_UNCONFIRMED_MSG);
 }
 
-void MLX90640_GetParameters(uint16_t *eeData, paramsMLX90640 *mlx90640)
-{
-	uint16_t eeMLX90640[832];
 
-	MLX90640_DumpEE (MLX90640_I2C_ADDR, eeMLX90640);
-	MLX90640_ExtractParameters(eeMLX90640, mlx90640);
-}
-
-static void GetPixelsTemp()
-{
-	float emissivity = 0.95;
-	float tr;
-
-	MLX90640_GetFrameData (MLX90640_I2C_ADDR, mlx90640Frame);
-	//tr = MLX90640_GetTa(mlx90640Frame, &mlx90640)-TA_SHIFT;
-	//reflected temperature based on the sensor, ambient temperature
-	//MLX90640_CalculateTo(mlx90640Frame, &mlx90640, emissivity, tr, mlx90640To);
-}
 
 #ifdef USE_B_L072Z_LRWAN1
 static void OnTimerLedEvent( void )

@@ -47,6 +47,7 @@
     
     int MLX90640_DumpEE(uint8_t slaveAddr, uint16_t *eeData);
     int MLX90640_GetFrameData(uint8_t slaveAddr, uint16_t *frameData);
+    int MLX90640_GetFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameData);
     int MLX90640_ExtractParameters(uint16_t *eeData, paramsMLX90640 *mlx90640);
     float MLX90640_GetVdd(uint16_t *frameData, const paramsMLX90640 *params);
     float MLX90640_GetTa(uint16_t *frameData, const paramsMLX90640 *params);

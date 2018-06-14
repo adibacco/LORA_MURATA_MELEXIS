@@ -72,7 +72,7 @@ void FLASH_If_Init(void)
   * @retval FLASHIF_OK : user flash area successfully erased
   *         FLASHIF_ERASEKO : error occurred
   */
-uint32_t FLASH_If_Erase(uint32_t start, uint32_t end)
+uint32_t FLASH_If_Erase(uint32_t start, uint32_t size)
 {
   uint32_t NbrOfPages = 0;
   uint32_t PageError = 0;
@@ -82,7 +82,7 @@ uint32_t FLASH_If_Erase(uint32_t start, uint32_t end)
   /* Unlock the Flash to enable the flash control register access *************/ 
   HAL_FLASH_Unlock();
 
-  NbrOfPages = (end - start)/FLASH_PAGE_SIZE;
+  NbrOfPages = size/FLASH_PAGE_SIZE;
 
 
   pEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
@@ -143,14 +143,20 @@ uint32_t FLASH_If_Erase_Sector(uint32_t start)
   * @note   After writing data buffer, the flash content is checked.
   * @param  destination: start address for target location
   * @param  p_source: pointer on buffer with data to write
-  * @param  length: length of data buffer (unit is 32-bit word)
+  * @param  length: length of data buffer (unit is bytes)
   * @retval uint32_t 0: Data successfully written to Flash memory
   *         1: Error occurred while writing data in Flash memory
   *         2: Written Data in flash memory is different from expected one
   */
-uint32_t FLASH_If_Write(uint32_t destination, uint32_t *p_source, uint32_t length)
+uint32_t FLASH_If_Write(uint32_t destination, uint32_t *p_source, uint32_t len)
 {
   uint32_t i = 0;
+  uint32_t length;
+
+  if ((len % 4) != 0)
+	  length = len/4 + 1;
+  else
+	  length = len/4;
 
   /* Unlock the Flash to enable the flash control register access *************/
   HAL_FLASH_Unlock();

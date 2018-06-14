@@ -41,6 +41,79 @@ int MLX90640_DumpEE(uint8_t slaveAddr, uint16_t *eeData)
      return MLX90640_I2CRead(slaveAddr, 0x2400, 832, eeData);
 }
 
+
+int isDataReady(uint8_t slaveAddr) {
+    volatile uint16_t statusRegister;
+
+	int error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
+	if(error != 0)
+	{
+		return -1;
+	}
+	return (statusRegister & 0x0008);
+}
+
+int MLX90640_GetFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameData)
+{
+    uint16_t dataReady = 1;
+    uint16_t controlRegister1;
+    volatile uint16_t statusRegister;
+    int error = 1;
+    uint8_t cnt = 0;
+
+    dataReady = 0;
+
+	error = MLX90640_I2CRead(slaveAddr, 0x0400, 832, frameData);
+
+    // Trigger acquisition (subpage 0)
+	error = MLX90640_I2CWrite(slaveAddr, 0x8000, 0x0030);
+	if(error == -1)
+	{
+		return error;
+	}
+
+	HAL_Delay(1000);
+
+    error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
+
+	error = MLX90640_I2CRead(slaveAddr, 0x0400, 832, frameData);
+
+    // Trigger acquisition (subpage 1)
+	error = MLX90640_I2CWrite(slaveAddr, 0x8000, 0x0030);
+	if(error == -1)
+	{
+		return error;
+	}
+
+	HAL_Delay(1000);
+
+    error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
+
+
+	error = MLX90640_I2CRead(slaveAddr, 0x0400, 832, frameData);
+
+	if(error != 0)
+	{
+		return error;
+	}
+
+
+
+    error = MLX90640_I2CRead(slaveAddr, 0x800D, 1, &controlRegister1);
+    frameData[832] = controlRegister1;
+    error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
+
+    frameData[833] = statusRegister & 0x0001;
+
+    if(error != 0)
+    {
+        return error;
+    }
+
+    return frameData[833];
+}
+
+
 int MLX90640_GetFrameData(uint8_t slaveAddr, uint16_t *frameData)
 {
     uint16_t dataReady = 1;
@@ -67,8 +140,8 @@ int MLX90640_GetFrameData(uint8_t slaveAddr, uint16_t *frameData)
         {
             return error;
         }
-            
         error = MLX90640_I2CRead(slaveAddr, 0x0400, 832, frameData); 
+
         if(error != 0)
         {
             return error;
