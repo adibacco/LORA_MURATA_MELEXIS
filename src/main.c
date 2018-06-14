@@ -206,9 +206,7 @@ int main( void )
   uint16_t reg;
 
   MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &reg);
-  // Select STEP MODE
-  MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, 0x1903);
-  MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &reg);
+
 
 
   MLX90640_GetEEPROM();

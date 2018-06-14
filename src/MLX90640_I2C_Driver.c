@@ -47,7 +47,7 @@ void MLX90640_I2CInit()
 	  hi2c1.Init.DutyCycle       = I2C_DUTYCYCLE_2;
 	#elif (defined USE_STM32F0XX_NUCLEO) || (defined USE_STM32L0XX_NUCLEO) || (defined USE_B_L072Z_LRWAN1) || \
 	      (defined USE_STM32F3XX_NUCLEO) || (defined USE_STM32L4XX_NUCLEO)
-	  hi2c1.Init.Timing          = MLX90640_I2C_SPEED_400;
+	  hi2c1.Init.Timing          = MLX90640_I2C_SPEED_100;
 	#endif
 
 
@@ -86,9 +86,7 @@ int MLX90640_I2CRead(uint8_t slaveAddr, uint16_t startAddress, uint16_t nMemAddr
     }
 
     sa = sa | 0x01;
-    uint32_t ticks = HAL_GetTick();
     ack = i2c_read(&hi2c1, sa, i2cData, 2*nMemAddressRead, 0);
-    ticks = HAL_GetTick() - ticks;
     if (ack < 0x00)
     {
         return -1;
@@ -103,6 +101,22 @@ int MLX90640_I2CRead(uint8_t slaveAddr, uint16_t startAddress, uint16_t nMemAddr
     
     return 0;   
 } 
+
+
+int MLX90640_I2CRead_Bulk(uint8_t slaveAddr,uint16_t startAddress, uint16_t nMemAddressRead, uint16_t *data)
+{
+	int b = 0;
+	uint16_t* p = data;
+
+	while (nMemAddressRead > 0) {
+		int res = MLX90640_I2CRead(slaveAddr, startAddress + b*64, (nMemAddressRead > 64)? 64 : nMemAddressRead, p + b*64);
+		if (res < 0)
+			return res;
+		b++;
+		nMemAddressRead -= 64;
+	}
+
+}
 
 void MLX90640_I2CFreqSet(int freq)
 {

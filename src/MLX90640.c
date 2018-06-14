@@ -11,7 +11,7 @@ __attribute__((__section__(".mlx90640_params_data"))) 	paramsMLX90640	mlx90640_p
 
 void MLX90640_GetEEPROM() {
 
-	uint16_t* eeMLX90640 = (uint16_t*) memalign(4, sizeof(uint16_t)*MLX90640_EEPROM_SIZE);
+	uint16_t* eeMLX90640 = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_EEPROM_SIZE);
 
 	MLX90640_DumpEE(MLX90640_I2C_ADDR, eeMLX90640);
 	int error = (eeMLX90640[15] != 0xbe33);
@@ -28,7 +28,7 @@ void MLX90640_GetEEPROM() {
 }
 
 void MLX90640_GetParameters() {
-	paramsMLX90640* params = (paramsMLX90640*) memalign(4, sizeof(paramsMLX90640));
+	paramsMLX90640* params = (paramsMLX90640*) memalign(16, sizeof(paramsMLX90640));
 
 	MLX90640_ExtractParameters(mlx90640_ee, params);
 
@@ -46,7 +46,10 @@ void MLX90640_GetParameters() {
 	float tr;
 	float mlx90640To[768];
 
-	uint16_t* mlx90640Frame = (uint16_t*) malloc(sizeof(uint16_t)*MLX90640_FRAME_SIZE);
+	uint16_t* mlx90640Frame = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_FRAME_SIZE);
+
+	  // Select STEP MODE
+	  //MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, 0x1903);
 
 	int res = MLX90640_GetFrameData_StepMode(MLX90640_I2C_ADDR, mlx90640Frame);
 
