@@ -221,6 +221,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/mlm32l0xx_it.c</locationURI>
 		</link>
 		<link>
+			<name>Projects/YNode/sample_data.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/sample_data.c</locationURI>
+		</link>
+		<link>
 			<name>Projects/YNode/vcom.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/vcom.c</locationURI>

@@ -211,6 +211,10 @@ int main( void )
 
   MLX90640_GetEEPROM();
 
+#ifdef MLX90640_SAMPLE_DATA
+  MLX90640_init_SampleData();
+#endif
+
   MLX90640_GetParameters();
 
   MLX90640_GetPixelsTemp();

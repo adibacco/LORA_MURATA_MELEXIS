@@ -109,7 +109,8 @@ int MLX90640_I2CRead_Bulk(uint8_t slaveAddr,uint16_t startAddress, uint16_t nMem
 	uint16_t* p = data;
 
 	while (nMemAddressRead > 0) {
-		int res = MLX90640_I2CRead(slaveAddr, startAddress + b*64, (nMemAddressRead > 64)? 64 : nMemAddressRead, p + b*64);
+		uint16_t* memAddr = p + b*64;
+		int res = MLX90640_I2CRead(slaveAddr, startAddress + b*64, (nMemAddressRead > 64)? 64 : nMemAddressRead, memAddr);
 		if (res < 0)
 			return res;
 		b++;

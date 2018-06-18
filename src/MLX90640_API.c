@@ -53,7 +53,7 @@ int isDataReady(uint8_t slaveAddr) {
 	return (statusRegister & 0x0008);
 }
 
-int MLX90640_GetFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameData)
+int MLX90640_GetCompleteFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameData)
 {
     uint16_t dataReady = 1;
     uint16_t controlRegister1;
@@ -105,7 +105,7 @@ int MLX90640_GetFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameData)
     frameData[832] = controlRegister1;
     error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
 
-    frameData[833] = statusRegister & 0x0001;
+    frameData[833] = statusRegister & 0x0001; // Both subPages acquired
 
     if(error != 0)
     {
@@ -336,7 +336,7 @@ int MLX90640_GetCurMode(uint8_t slaveAddr)
 
 //------------------------------------------------------------------------------
 
-void MLX90640_CalculateTo(uint16_t *frameData, const paramsMLX90640 *params, float emissivity, float tr, float *result)
+void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640 *params, float emissivity, float tr, float *result)
 {
     float vdd;
     float ta;
@@ -356,9 +356,10 @@ void MLX90640_CalculateTo(uint16_t *frameData, const paramsMLX90640 *params, flo
     float To;
     float alphaCorrR[4];
     int8_t range;
-    uint16_t subPage;
     
-    subPage = frameData[833];
+    if (subPage == -1)
+    	subPage = frameData[833];
+
     vdd = MLX90640_GetVdd(frameData, params);
     ta = MLX90640_GetTa(frameData, params);
     ta4 = pow((ta + 273.15), (double)4);
@@ -417,7 +418,7 @@ void MLX90640_CalculateTo(uint16_t *frameData, const paramsMLX90640 *params, flo
           pattern = chessPattern; 
         }               
         
-        if(pattern == frameData[833])
+        if(pattern == subPage)
         {    
             irData = frameData[pixelNumber];
             if(irData > 32767)
@@ -469,7 +470,7 @@ void MLX90640_CalculateTo(uint16_t *frameData, const paramsMLX90640 *params, flo
 
 //------------------------------------------------------------------------------
 
-void MLX90640_GetImage(uint16_t *frameData, const paramsMLX90640 *params, float *result)
+void MLX90640_GetImage(uint16_t *frameData, int subPage, const paramsMLX90640 *params, float *result)
 {
     float vdd;
     float ta;
@@ -483,9 +484,10 @@ void MLX90640_GetImage(uint16_t *frameData, const paramsMLX90640 *params, float 
     int8_t pattern;
     int8_t conversionPattern;
     float image;
-    uint16_t subPage;
     
-    subPage = frameData[833];
+    if (subPage == -1)
+    	subPage = frameData[833];
+
     vdd = MLX90640_GetVdd(frameData, params);
     ta = MLX90640_GetTa(frameData, params);
     
@@ -536,7 +538,7 @@ void MLX90640_GetImage(uint16_t *frameData, const paramsMLX90640 *params, float 
           pattern = chessPattern; 
         }
         
-        if(pattern == frameData[833])
+        if(pattern == subPage)
         {    
             irData = frameData[pixelNumber];
             if(irData > 32767)
