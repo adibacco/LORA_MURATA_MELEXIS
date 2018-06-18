@@ -1,0 +1,2 @@
+#define MLX90640_SAMPLE_DATA 1
+
