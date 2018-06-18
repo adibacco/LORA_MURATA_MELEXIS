@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "MLX90640.h"
 
 #ifdef MLX90640_SAMPLE_DATA
 

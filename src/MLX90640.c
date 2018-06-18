@@ -3,8 +3,7 @@
 #include <malloc.h>
 #include "MLX90640.h"
 
-//static uint16_t mlx90640Frame[MLX90640_FRAME_SIZE];
-//static float mlx90640To[768];
+
 
 __attribute__((__section__(".mlx90640_eeprom_data"))) 	uint16_t mlx90640_ee[MLX90640_EEPROM_SIZE];
 __attribute__((__section__(".mlx90640_params_data"))) 	paramsMLX90640	mlx90640_params;
