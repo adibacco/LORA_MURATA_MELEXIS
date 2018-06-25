@@ -10,7 +10,7 @@ __attribute__((__section__(".mlx90640_params_data"))) 	paramsMLX90640	mlx90640_p
 
 
 #ifdef MLX90640_SAMPLE_DATA
-extern uint16_t ramData_sample[];
+extern uint16_t frameData_sample[];
 extern uint16_t eeData_sample[];
 #endif
 
@@ -54,9 +54,9 @@ void MLX90640_GetParameters() {
 }
 
  void MLX90640_GetPixelsTemp() {
-	float emissivity = 0.95;
+	float emissivity = 0.8f;
 	float tr;
-	float mlx90640To[768];
+	int16_t mlx90640To[24][32];
 
 	uint16_t* mlx90640Frame;
 
@@ -68,7 +68,7 @@ void MLX90640_GetParameters() {
 	#ifndef MLX90640_SAMPLE_DATA
 		int res = MLX90640_GetCompleteFrameData_StepMode(MLX90640_I2C_ADDR, mlx90640Frame);
 	#else
-		mlx90640Frame = ramData_sample;
+		mlx90640Frame = frameData_sample;
 	#endif
 
 		tr = MLX90640_GetTa(mlx90640Frame, &mlx90640_params)-TA_SHIFT;
@@ -77,12 +77,7 @@ void MLX90640_GetParameters() {
 		MLX90640_CalculateTo(mlx90640Frame, 0, &mlx90640_params, emissivity, tr, mlx90640To);
 		MLX90640_CalculateTo(mlx90640Frame, 1, &mlx90640_params, emissivity, tr, mlx90640To);
 
-		float max = -50.0f;
-		for (int i = 0; i < 768; i++) {
-			if (mlx90640To[i] > max)
-				max = mlx90640To[i];
 
-		}
 
 		HAL_Delay(1000);
 	}

@@ -194,6 +194,7 @@ int main( void )
   HW_Init();
   
   /* USER CODE BEGIN 1 */
+
   /* USER CODE END 1 */
   
   /*Disbale Stand-by mode*/
