@@ -912,7 +912,9 @@ const uint16_t eeData_sample[] = {
 		0x2889
 };
 #endif
+#endif
 
+#ifdef MLX90640_SAMPLE_EEPROM
 const uint16_t eeData_sample[] = {
 		0x00AE,
 		0x499A,
@@ -1749,11 +1751,12 @@ const uint16_t eeData_sample[] = {
 
 };
 
+#endif
+
+
 void MLX90640_init_SampleData() {
 
 
 }
-
-#endif
 
 

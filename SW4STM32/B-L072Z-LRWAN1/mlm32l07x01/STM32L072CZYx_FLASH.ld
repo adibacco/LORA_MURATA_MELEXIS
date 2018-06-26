@@ -155,14 +155,14 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  .mlx90640_eeprom_data :
+  .mlx90640_eeprom_data (NOLOAD) :
   {
 	  . = ALIGN(4);
 	     *(.mlx90640_eeprom_data)
 	  . = ALIGN(4);
   } > RODATA
 	  
-  .mlx90640_params_data :
+  .mlx90640_params_data (NOLOAD) :
   {
 	  . = ALIGN(4);
 	     *(.mlx90640_params_data)

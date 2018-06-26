@@ -43,11 +43,11 @@ void MLX90640_I2CInit()
 	  hi2c1.Init.OwnAddress2     = 0;
 	#if (defined USE_STM32F4XX_NUCLEO) || (defined USE_STM32L1XX_NUCLEO) || \
 		  (defined USE_STM32F1XX_NUCLEO)
-	  hi2c1.Init.ClockSpeed      = MLX90640_I2C_SPEED_100;
+	  hi2c1.Init.ClockSpeed      = MLX90640_I2C_SPEED_400;
 	  hi2c1.Init.DutyCycle       = I2C_DUTYCYCLE_2;
 	#elif (defined USE_STM32F0XX_NUCLEO) || (defined USE_STM32L0XX_NUCLEO) || (defined USE_B_L072Z_LRWAN1) || \
 	      (defined USE_STM32F3XX_NUCLEO) || (defined USE_STM32L4XX_NUCLEO)
-	  hi2c1.Init.Timing          = MLX90640_I2C_SPEED_100;
+	  hi2c1.Init.Timing          = MLX90640_I2C_SPEED_400;
 	#endif
 
 

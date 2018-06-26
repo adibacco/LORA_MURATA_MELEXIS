@@ -207,16 +207,16 @@ int main( void )
   uint16_t reg;
 
   MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &reg);
+  MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, 0x1803);
 
-
-
-  MLX90640_GetEEPROM();
+  int eepromUpdated = MLX90640_GetEEPROM();
 
 #ifdef MLX90640_SAMPLE_DATA
   MLX90640_init_SampleData();
 #endif
 
-  MLX90640_GetParameters();
+if (eepromUpdated == 1)
+	  MLX90640_GetParameters();
 
   MLX90640_GetPixelsTemp();
 

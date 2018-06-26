@@ -111,7 +111,7 @@ void vcom_Send( char *format, ... )
   va_start(args, format);
   uint8_t len;
   uint8_t lenTop;
-  char tempBuff[128];
+  char tempBuff[256];
   
   BACKUP_PRIMASK();
   DISABLE_IRQ();

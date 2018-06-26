@@ -55,20 +55,20 @@ int isDataReady(uint8_t slaveAddr) {
 
 int MLX90640_GetCompleteFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameData)
 {
-    uint16_t dataReady = 1;
     uint16_t controlRegister1;
     volatile uint16_t statusRegister;
     int error = 1;
     uint8_t cnt = 0;
 
-    dataReady = 0;
+    int subPage = 0;
     uint16_t ctrl_reg;
     MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &ctrl_reg);
 
-    MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, ctrl_reg | 0x0002);
+    MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, ctrl_reg | 0x0003);
 
     HAL_Delay(10);
 
+    bzero(frameData, sizeof(uint16_t)*834);
     // Trigger acquisition (subpage 0)
 	error = MLX90640_I2CWrite(slaveAddr, 0x8000, 0x0030);
 	if(error == -1)
@@ -76,9 +76,15 @@ int MLX90640_GetCompleteFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameDat
 		return error;
 	}
 
-	HAL_Delay(1000);
+	HAL_Delay(500);
 
-    error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
+	do {
+	    error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
+	}
+    while ((statusRegister & 0x0008) == 0x0000);
+	subPage = statusRegister & 0x0001;
+
+	error = MLX90640_I2CRead_Bulk(slaveAddr, 0x0400, 832, frameData);
 
     // Trigger acquisition (subpage 1)
 	error = MLX90640_I2CWrite(slaveAddr, 0x8000, 0x0030);
@@ -87,10 +93,13 @@ int MLX90640_GetCompleteFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameDat
 		return error;
 	}
 
-	HAL_Delay(1000);
+	HAL_Delay(500);
 
-    error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
-
+	do {
+	    error = MLX90640_I2CRead(slaveAddr, 0x8000, 1, &statusRegister);
+	}
+    while ((statusRegister & 0x0008) == 0x0000);
+	subPage = statusRegister & 0x0001;
 
 	error = MLX90640_I2CRead_Bulk(slaveAddr, 0x0400, 832, frameData);
 
@@ -98,8 +107,6 @@ int MLX90640_GetCompleteFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameDat
 	{
 		return error;
 	}
-
-
 
     error = MLX90640_I2CRead(slaveAddr, 0x800D, 1, &controlRegister1);
     frameData[832] = controlRegister1;
@@ -114,6 +121,7 @@ int MLX90640_GetCompleteFrameData_StepMode(uint8_t slaveAddr, uint16_t *frameDat
 
     return frameData[833];
 }
+
 
 
 int MLX90640_GetFrameData(uint8_t slaveAddr, uint16_t *frameData)
@@ -142,8 +150,8 @@ int MLX90640_GetFrameData(uint8_t slaveAddr, uint16_t *frameData)
         {
             return error;
         }
-        error = MLX90640_I2CRead_Bulk(slaveAddr, 0x0400, 832, frameData);
 
+        error = MLX90640_I2CRead_Bulk(slaveAddr, 0x0400, 832, frameData);
         if(error != 0)
         {
             return error;
@@ -336,7 +344,7 @@ int MLX90640_GetCurMode(uint8_t slaveAddr)
 
 //------------------------------------------------------------------------------
 
-void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640 *params, float emissivity, float tr, int16_t *result)
+void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640 *params, float emissivity, float tr, int16_t *tenthsCelsius, float* temp, float* temp4)
 {
     float vdd;
     float ta;
@@ -354,6 +362,7 @@ void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640
     int8_t conversionPattern;
     float Sx;
     float To;
+    float To4;
     float alphaCorrR[4];
     int8_t range;
     
@@ -461,9 +470,15 @@ void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640
                 range = 3;            
             }      
             
-            To = sqrt(sqrt(irData / (alphaCompensated * alphaCorrR[range] * (1 + params->ksTo[range] * (To - params->ct[range]))) + taTr)) - 273.15;
+            To4 = irData / (alphaCompensated * alphaCorrR[range] * (1 + params->ksTo[range] * (To - params->ct[range]))) + taTr;
+            To = sqrt(sqrt(To4)); // Kelvin
             
-            result[pixelNumber] = 10*To;
+            if (tenthsCelsius != NULL)
+            	tenthsCelsius[pixelNumber] = round(10*(To-273.15));
+            if (temp != NULL)
+            	temp[pixelNumber] = To;
+            if (temp4 != NULL)
+            	temp4[pixelNumber] = To4;
         }
     }
 }
