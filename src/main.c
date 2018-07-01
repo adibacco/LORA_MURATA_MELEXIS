@@ -72,7 +72,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            10000
+#define APP_TX_DUTYCYCLE                            3000
 /*!
  * LoRaWAN Adaptive Data Rate
  * @note Please note that when ADR is enabled the end-device should be static
@@ -82,7 +82,7 @@
  * LoRaWAN Default data Rate Data Rate
  * @note Please note that LORAWAN_DEFAULT_DATA_RATE is used only when ADR is disabled 
  */
-#define LORAWAN_DEFAULT_DATA_RATE DR_0
+#define LORAWAN_DEFAULT_DATA_RATE DR_5
 /*!
  * LoRaWAN application port
  * @note do not use 224. It is reserved for certification
@@ -99,7 +99,7 @@
 /*!
  * User application data buffer size
  */
-#define LORAWAN_APP_DATA_BUFF_SIZE                           64
+#define LORAWAN_APP_DATA_BUFF_SIZE                           128
 
 #define TA_SHIFT	8
 
@@ -109,10 +109,20 @@
 static uint8_t AppDataBuff[LORAWAN_APP_DATA_BUFF_SIZE];
 extern I2C_HandleTypeDef hi2c1;
 
+
+static uint16_t*	mlxFrame = NULL;
+uint8_t 		mlxTemp[24][32];
+
+static int cnt = 0;
+
+static int rowCounter = 24;
+
+
 /*!
  * User application data structure
  */
 static lora_AppData_t AppData={ AppDataBuff,  0 ,0 };
+
 /* Private macro -------------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
@@ -130,6 +140,9 @@ static void LORA_TxNeeded ( void );
 	
 /* LoRa endNode send request*/
 static void Send( void );
+static void SendThermoFrame(int);
+static void SendFrameInfo(uint8_t*);
+static void SendIdentifier( void );
 
 /* start the tx process*/
 static void LoraStartTx(TxEventType_t EventType);
@@ -181,6 +194,9 @@ static  LoRaParam_t LoRaParamInit= {LORAWAN_ADR_STATE,
   */
 int main( void )
 {
+
+  int x;
+
   /* STM32 HAL library initialization*/
   HAL_Init();
   
@@ -207,7 +223,7 @@ int main( void )
   uint16_t reg;
 
   MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &reg);
-  MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, 0x1803);
+  MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, 0x1801);
 
   int eepromUpdated = MLX90640_GetEEPROM();
 
@@ -218,12 +234,10 @@ int main( void )
 if (eepromUpdated == 1)
 	  MLX90640_GetParameters();
 
-  MLX90640_GetPixelsTemp();
+  mlxFrame = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_FRAME_SIZE);
 
-  while (1) {
+  MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, NULL);
 
-	 HAL_Delay(1000);
-  }
 
   /* Configure the Lora Stack*/
   LORA_Init( &LoRaMainCallbacks, &LoRaParamInit);
@@ -232,8 +246,8 @@ if (eepromUpdated == 1)
   
   LORA_Join();
   
-  LoraStartTx( TX_ON_TIMER) ;
-  
+  LoraStartTx ( TX_ON_TIMER) ;
+  LoraStartTx ( TX_ON_EVENT);
   while( 1 )
   {
     DISABLE_IRQ( );
@@ -259,6 +273,65 @@ static void LORA_HasJoined( void )
   LORA_RequestClass( LORAWAN_DEFAULT_CLASS );
 }
 
+static void SendFrameInfo(uint8_t* info)
+{
+
+	  LED_On( LED_BLUE ) ;
+	  AppData.Port = LORAWAN_APP_PORT;
+
+	  AppData.Buff[0] = 0x10;
+	  AppData.Buff[1] = info[0];
+	  AppData.Buff[2] = info[1];
+	  AppData.Buff[3] = info[2];
+	  AppData.Buff[4] = info[3];
+	  AppData.Buff[5] = info[4];
+	  AppData.Buff[6] = info[5];
+	  AppData.BuffSize = 7;
+
+	  LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	  HAL_Delay(100);
+	  LED_Off( LED_BLUE ) ;
+
+}
+
+static void SendThermoFrame(int row)
+{
+
+
+	  LED_On( LED_GREEN ) ;
+	  AppData.Port = LORAWAN_APP_PORT;
+
+	  memcpy(&AppData.Buff[2], mlxTemp[row], 32);
+	  AppData.Buff[0] = 0x11;
+	  AppData.Buff[1] = row;
+	  AppData.BuffSize = 34;
+
+	  LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	  LED_Off( LED_GREEN ) ;
+
+}
+
+static void SendIdentifier(void) {
+
+	  if ( LORA_JoinStatus () != LORA_SET)
+	  {
+	    /*Not joined, try again later*/
+	    LORA_Join();
+	    return;
+	  }
+
+	  LED_On( LED_RED2 ) ;
+
+	  AppData.Port = LORAWAN_APP_PORT;
+
+	  strcpy(AppData.Buff, "Thermo Camera");
+	  AppData.BuffSize = 13;
+	  LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+
+	  LED_Off( LED_RED2 ) ;
+
+}
+
 static void Send( void )
 {
   /* USER CODE BEGIN 3 */
@@ -267,7 +340,7 @@ static void Send( void )
   uint16_t humidity = 0;
   uint8_t batteryLevel;
   sensor_t sensor_data;
-  
+
   if ( LORA_JoinStatus () != LORA_SET)
   {
     /*Not joined, try again later*/
@@ -372,7 +445,7 @@ static void Send( void )
   AppData.BuffSize = i;
   
   LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
-  
+
   /* USER CODE END 3 */
 }
 
@@ -450,9 +523,37 @@ static void LORA_RxData( lora_AppData_t *AppData )
 
 static void OnTxTimerEvent( void )
 {
-  Send( );
+
+  if ( LORA_JoinStatus () == LORA_SET)
+  {
+	  if ((cnt++ % 28) == 0) {
+		  uint8_t info[6];
+		  MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, info);
+
+		  vcom_Send("Temp frame acquired max %d, imax %d, jmax %d min %d, imin %d, jmin %d\r\n", info[0], info[1], info[2], info[3], info[4], info[5]);
+		  rowCounter = 0;
+		  SendFrameInfo(info);
+
+	  }
+	  else {
+		  if (rowCounter < 24) {
+				  vcom_Send("%2d.", rowCounter);
+				  SendThermoFrame(rowCounter );
+				  rowCounter++;
+		  }
+	  }
+
+  }
+  else
+  {
+	/*Not joined, try again later*/
+	LORA_Join();
+  }
+
+
   /*Wait for next tx slot*/
   TimerStart( &TxTimer);
+
 }
 
 static void LoraStartTx(TxEventType_t EventType)
@@ -474,7 +575,7 @@ static void LoraStartTx(TxEventType_t EventType)
     initStruct.Speed = GPIO_SPEED_HIGH;
 
     HW_GPIO_Init( USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, &initStruct );
-    HW_GPIO_SetIrq( USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, 0, Send );
+    HW_GPIO_SetIrq( USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, 0, SendIdentifier );
   }
 }
 

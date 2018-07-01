@@ -76,124 +76,50 @@ void MLX90640_GetParameters() {
 }
 
 
-
-float GetEquivalentTempForRegion(float alpha, int imax, int jmax, float Tp4[24][32], float* Tback) {
-	float aux = 0;
-	float res = 0;
-
-	float Tb = 0;
-	float Tb4 = 0;
-	int k = 0;
-
-	// Evaluate background temp
-
-	for (int di = -2; di <= 2; di++) {
-		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, di)][NEAR_COL(jmax, -2)]));
-		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, di)][NEAR_COL(jmax, +2)]));
-		k+=2;
-	}
-
-	for (int dj = -1; dj <= 1; dj++) {
-		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, -2)][NEAR_COL(jmax, dj)]));
-		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, 2)][NEAR_COL(jmax, dj)]));
-		k+=2;
-	}
-
-	Tb = Tb / k;
-	Tb4 = pow(Tb, 4);
-
-	if ((imax > MIN_ROW) && (imax < MAX_ROW)) {
-		if ((jmax > MIN_COL) && (jmax < MAX_COL)) {
-			for (int i = NEAR_ROW(imax, -1); i <= NEAR_ROW(imax, 1); i++) {
-				for (int j = NEAR_COL(jmax, -1); j <= NEAR_COL(jmax, 1); j++) {
-					aux  += (Tp4[i][j] - Tb4);
-				}
-			}
-		}
-	}
-
-	res = sqrt(sqrt(aux/alpha + Tb4));
-
-	if (Tback != NULL)
-		*Tback = Tb;
-	return res;
-
-}
-
- void MLX90640_GetPixelsTemp() {
-	float emissivity = 1.0f;
+ void MLX90640_GetPixelsTemp(uint16_t* mlxFrame, uint8_t mlxTemp[][32], uint8_t* info) {
+	float emissivity = 0.95f;
 	float tr;
-	int16_t mlx90640To[24][32];
-	float T4[24][32];
+	int counter = 0;
 
-	uint16_t* mlx90640Frame;
-
-#ifndef MLX90640_SAMPLE_DATA
-	mlx90640Frame = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_FRAME_SIZE);
-#endif
-	while (1) {
 
 		for (int p = 0; p < 2; p++) {
-			int res = MLX90640_GetFrameData(MLX90640_I2C_ADDR, mlx90640Frame);
+			int res = MLX90640_GetFrameData(MLX90640_I2C_ADDR, mlxFrame);
 
-			tr = MLX90640_GetTa(mlx90640Frame, &mlx90640_params)-TA_SHIFT;
-			int subPage = MLX90640_GetSubPageNumber(mlx90640Frame);
+			tr = MLX90640_GetTa(mlxFrame, &mlx90640_params)-TA_SHIFT;
+			int subPage = MLX90640_GetSubPageNumber(mlxFrame);
 			//reflected temperature based on the sensor, ambient temperature
-			MLX90640_CalculateTo(mlx90640Frame, -1, &mlx90640_params, emissivity, tr, mlx90640To, NULL, T4);
+			MLX90640_CalculateTo(mlxFrame, -1, &mlx90640_params, emissivity, tr, mlxTemp, NULL);
 		}
 
-		float max = 0;
-		int imax = 0;
-		int jmax = 0;
+		if (info != NULL)
+		{
+			uint8_t max = 0;
+			uint8_t min = 255;
+			int imax= -1, jmax = -1;
+			int imin= -1, jmin = -1;
 
-		for (int i = MIN_ROW; i < MAX_ROW; i++) {
-			for (int j = MIN_COL; j < MAX_COL; j++) {
-
-				if (T4[i][j] > max)
-				{
-					imax = i;
-					jmax = j;
-					max = T4[i][j];
-				}
-
-			}
-		}
-
-		float min = INFINITY;
-
-		if ((imax > MIN_ROW) && (imax < MAX_ROW) && (jmax > MIN_COL) && (jmax < MAX_COL)) {
-
-			for (int i = NEAR_ROW(imax, -1); i <= NEAR_ROW(imax, 1); i++) {
-				for (int j = NEAR_COL(jmax, -1); j <= NEAR_COL(jmax, 1); j++) {
-					if (T4[i][j] < min)
-						min = T4[i][j];
+			for (int i = MIN_ROW; i < MAX_ROW; i++) {
+				for (int j = MIN_COL; j < MAX_COL; j++) {
+					if (mlxTemp[i][j] > max) {
+						max = mlxTemp[i][j];
+						imax = i;
+						jmax = j;
+					}
+					if (mlxTemp[i][j] < min) {
+						min = mlxTemp[i][j];
+						imin = i;
+						jmin = j;
+					}
 				}
 			}
 
-			float Tb = 0;
-			float Te4 = GetEquivalentTempForRegion(1.0, imax, jmax, T4, &Tb);
 
-
-			for (int i = NEAR_ROW(imax, -2); i <= NEAR_ROW(imax, 2); i++) {
-				for (int j = NEAR_COL(jmax, -2); j <= NEAR_COL(jmax, 2); j++) {
-					int x = (int) (sqrt(sqrt(T4[i][j])) -273.15);
-					vcom_Send("%3d \t", x);
-				}
-				vcom_Send("\r\n");
-
-			}
-
-			int tmax = (int)  (sqrt(sqrt(max))-273.15);
-			int tmin = (int)  (sqrt(sqrt(min))-273.15);
-			int eqtemp = (int)  (Te4-273.15);
-			int tback = (int) (Tb - 273.15);
-			vcom_Send("imax %d jmax %d tmax %d tback %d eqtemp %d\r\n", imax, jmax, tmax, tback, eqtemp);
+			info[0] = max;
+			info[1] = imax;
+			info[2] = jmax;
+			info[3] = min;
+			info[4] = imin;
+			info[5] = jmin;
 		}
-		HAL_Delay(1000);
-	}
-#ifndef MLX90640_SAMPLE_DATA
-	free(mlx90640Frame);
-#endif
-
 }
 

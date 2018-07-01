@@ -344,7 +344,7 @@ int MLX90640_GetCurMode(uint8_t slaveAddr)
 
 //------------------------------------------------------------------------------
 
-void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640 *params, float emissivity, float tr, int16_t *tenthsCelsius, float* temp, float* temp4)
+void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640 *params, float emissivity, float tr, uint8_t* temp, float* temp4)
 {
     float vdd;
     float ta;
@@ -473,10 +473,9 @@ void MLX90640_CalculateTo(uint16_t *frameData, int subPage, const paramsMLX90640
             To4 = irData / (alphaCompensated * alphaCorrR[range] * (1 + params->ksTo[range] * (To - params->ct[range]))) + taTr;
             To = sqrt(sqrt(To4)); // Kelvin
             
-            if (tenthsCelsius != NULL)
-            	tenthsCelsius[pixelNumber] = round(10*(To-273.15));
             if (temp != NULL)
-            	temp[pixelNumber] = To;
+            	temp[pixelNumber] = round((To-273.15));
+
             if (temp4 != NULL)
             	temp4[pixelNumber] = To4;
         }
