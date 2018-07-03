@@ -166,6 +166,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/src/bsp.c</locationURI>
 		</link>
 		<link>
+			<name>Projects/YNode/compress.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/compress.c</locationURI>
+		</link>
+		<link>
 			<name>Projects/YNode/debug.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/debug.c</locationURI>
