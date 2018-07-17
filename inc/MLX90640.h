@@ -29,5 +29,6 @@ void MLX90640_GetParameters();
 
 void MLX90640_GetPixelsTemp(uint16_t* mlxFrame, uint8_t mlxTemp[][32], uint8_t* info);
 
+float GetEquivalentTempForRegion(float alpha, int imax, int jmax, float Tp4[24][32], float* Tback);
 
 #endif

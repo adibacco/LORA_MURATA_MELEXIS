@@ -13,5 +13,7 @@ typedef struct _QUEUE {
 } QUEUE;
 
 
+int compress(int ilen, uint8_t* ia,  uint8_t* oa, int lim);
+
 #endif
 

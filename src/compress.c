@@ -58,7 +58,7 @@ int pop(int nbits, uint32_t* val)
 }
 
 
-int compress(int ilen, uint8_t* ia,  uint8_t* oa)
+int compress(int ilen, uint8_t* ia,  uint8_t* oa, int lim)
 {
 
   int8_t* tmp = (int8_t*) ia;
@@ -97,6 +97,8 @@ int compress(int ilen, uint8_t* ia,  uint8_t* oa)
 	    while (pop(8, &val) != -1)
 	    {
 	    	oa[j++] = val & 0xff;
+	    	if (j >= lim)
+	    		break;
 	    }
 
 

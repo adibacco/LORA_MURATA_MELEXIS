@@ -45,6 +45,9 @@ int MLX90640_GetEEPROM() {
 			FLASH_If_Write(address, eeMLX90640, size);
 			ret = 1;
 			vcom_Send("MLX90640 eeprom copied to FLASH\r\n");
+		} else {
+			ret = 0;
+			vcom_Send("MLX90640 eeprom already known\r\n");
 		}
 	}
 
@@ -75,12 +78,55 @@ void MLX90640_GetParameters() {
 
 }
 
+float GetEquivalentTempForRegion(float alpha, int imax, int jmax, float Tp4[24][32], float* Tback) {
+	float aux = 0;
+	float res = 0;
+
+	float Tb = 0;
+	float Tb4 = 0;
+	int k = 0;
+
+	// Evaluate background temp
+
+	for (int di = -2; di <= 2; di++) {
+		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, di)][NEAR_COL(jmax, -2)]));
+		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, di)][NEAR_COL(jmax, +2)]));
+		k+=2;
+	}
+
+	for (int dj = -1; dj <= 1; dj++) {
+		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, -2)][NEAR_COL(jmax, dj)]));
+		Tb += sqrt(sqrt(Tp4[NEAR_ROW(imax, 2)][NEAR_COL(jmax, dj)]));
+		k+=2;
+	}
+
+	Tb = Tb / k;
+	Tb4 = pow(Tb, 4);
+
+	if ((imax > MIN_ROW) && (imax < MAX_ROW)) {
+		if ((jmax > MIN_COL) && (jmax < MAX_COL)) {
+			for (int i = NEAR_ROW(imax, -1); i <= NEAR_ROW(imax, 1); i++) {
+				for (int j = NEAR_COL(jmax, -1); j <= NEAR_COL(jmax, 1); j++) {
+					aux  += (Tp4[i][j] - Tb4);
+				}
+			}
+		}
+	}
+
+	res = sqrt(sqrt(aux/alpha + Tb4));
+
+	if (Tback != NULL)
+		*Tback = Tb;
+	return res;
+
+}
+
 
  void MLX90640_GetPixelsTemp(uint16_t* mlxFrame, uint8_t mlxTemp[][32], uint8_t* info) {
-	float emissivity = 0.95f;
+	float emissivity = 0.8f;
 	float tr;
 	int counter = 0;
-
+	float T4[24][32];
 
 		for (int p = 0; p < 2; p++) {
 			int res = MLX90640_GetFrameData(MLX90640_I2C_ADDR, mlxFrame);
@@ -88,7 +134,7 @@ void MLX90640_GetParameters() {
 			tr = MLX90640_GetTa(mlxFrame, &mlx90640_params)-TA_SHIFT;
 			int subPage = MLX90640_GetSubPageNumber(mlxFrame);
 			//reflected temperature based on the sensor, ambient temperature
-			MLX90640_CalculateTo(mlxFrame, -1, &mlx90640_params, emissivity, tr, mlxTemp, NULL);
+			MLX90640_CalculateTo(mlxFrame, -1, &mlx90640_params, emissivity, tr, mlxTemp, T4);
 		}
 
 		if (info != NULL)
@@ -113,6 +159,10 @@ void MLX90640_GetParameters() {
 				}
 			}
 
+			float Tback = 0;
+			int Tb = 0;
+			int Te = (int) (GetEquivalentTempForRegion(1.0, imax, jmax, T4, &Tback) - 273.15);
+			Tb = (int) (Tback - 273.15);
 
 			info[0] = max;
 			info[1] = imax;
@@ -120,6 +170,15 @@ void MLX90640_GetParameters() {
 			info[3] = min;
 			info[4] = imin;
 			info[5] = jmin;
+			if ((Tb < 0) || (Tb > 200)) {
+				Tb = 0;
+			}
+			if ((Te < 0) || (Te > 400)) {
+				Te = 0;
+			}
+			info[6] = Te;
+			info[7] = Tb;
+
 		}
 }
 
