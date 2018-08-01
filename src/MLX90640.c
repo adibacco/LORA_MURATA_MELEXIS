@@ -164,6 +164,12 @@ float GetEquivalentTempForRegion(float alpha, int imax, int jmax, float Tp4[24][
 			int Te = (int) (GetEquivalentTempForRegion(1.0, imax, jmax, T4, &Tback) - 273.15);
 			Tb = (int) (Tback - 273.15);
 
+			if ((max < 0) || (max > 200)) {
+				max = 0;
+			}
+			if ((min < 0) || (min > 200)) {
+				min = 0;
+			}
 			info[0] = max;
 			info[1] = imax;
 			info[2] = jmax;
