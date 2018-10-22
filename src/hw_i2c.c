@@ -59,7 +59,7 @@ Maintainer: Miguel Luis and Gregory Cristian
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+
 #include "hw.h"
 #include "utilities.h"
 
@@ -89,7 +89,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c)
 
   /*##-2- Configure peripheral GPIO ##########################################*/
   /* I2C SCL GPIO pin configuration  */
-  GPIO_InitStruct.Pin       = M24SR_SCL_PIN;
+  GPIO_InitStruct.Pin       = GPIO_PIN_8;
 #ifdef EXTERNAL_PULLUP
   GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
 #else
@@ -99,16 +99,16 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef *hi2c)
   GPIO_InitStruct.Speed     = GPIO_SPEED_HIGH;
   GPIO_InitStruct.Alternate = I2Cx_SCL_AF;
   
-  HAL_GPIO_Init(M24SR_SCL_PIN_PORT, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* I2C SDA GPIO pin configuration  */
-  GPIO_InitStruct.Pin 			= M24SR_SDA_PIN;
+  GPIO_InitStruct.Pin 			= GPIO_PIN_9;
 	GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Pull      = GPIO_NOPULL;
   GPIO_InitStruct.Speed     = GPIO_SPEED_HIGH;
   GPIO_InitStruct.Alternate = I2Cx_SCL_AF;
 
-  HAL_GPIO_Init(M24SR_SDA_PIN_PORT, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
 
 /**
@@ -127,9 +127,9 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef *hi2c)
 
   /*##-2- Disable peripherals and GPIO Clocks ################################*/
   /* Configure I2C Tx as alternate function  */
-  HAL_GPIO_DeInit(M24SR_SCL_PIN_PORT, M24SR_SCL_PIN);
+  HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8);
   /* Configure I2C Rx as alternate function  */
-  HAL_GPIO_DeInit(M24SR_SDA_PIN_PORT, M24SR_SDA_PIN);
+  HAL_GPIO_DeInit(GPIOB, GPIO_PIN_9);
 }
 
 

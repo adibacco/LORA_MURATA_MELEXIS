@@ -188,7 +188,7 @@
 		<link>
 			<name>Projects/YNode/hw_i2c.c</name>
 			<type>1</type>
-			<locationURI>PARENT-11-PROJECT_LOC/Documents/IoT/lora/STM32CubeExpansion_LRWAN_V1.1.4/Projects/Multi/Applications/LoRa/End_Node/src/hw_i2c.c</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/src/hw_i2c.c</locationURI>
 		</link>
 		<link>
 			<name>Projects/YNode/hw_rtc.c</name>

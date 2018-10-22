@@ -73,7 +73,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            4000
+#define APP_TX_DUTYCYCLE                            5000
 /*!
  * LoRaWAN Adaptive Data Rate
  * @note Please note that when ADR is enabled the end-device should be static
@@ -148,7 +148,7 @@ static void LORA_TxNeeded ( void );
 	
 /* LoRa endNode send request*/
 static void Send( void );
-static void SendThermoFrame(int, int);
+static void SendThermoFrame(int, int, int);
 static void SendFrameInfo(uint8_t*);
 static void SendIdentifier( void );
 
@@ -218,6 +218,9 @@ int main( void )
   HW_Init();
   
   /* USER CODE BEGIN 1 */
+  LED_On( LED_RED2 ) ;
+  HAL_Delay(1000);
+  LED_Off( LED_RED2 ) ;
 
   /* USER CODE END 1 */
   
@@ -324,7 +327,7 @@ static void SendFrameInfo(uint8_t* info)
 
 }
 
-static void SendThermoFrame(int startRow, int numRows)
+static void SendThermoFrame(int startRow, int numRows, int compression)
 {
 	  LED_On( LED_GREEN ) ;
 	  AppData.Port = LORAWAN_APP_PORT;
@@ -333,15 +336,27 @@ static void SendThermoFrame(int startRow, int numRows)
 	  			        46,  45,  45,  45,  44,  45,  45,  46,   46,  47,  48,  49,  49,  50,  50,  51,  50,  50,  49,  50,  48,  47,  45,  46,  43,  43,  42,  43,  42,  42,  42,  43 };
 	  */
 
-	  int clen = compress(numRows*NUM_COLS, &mlxTemp[startRow*NUM_COLS], &AppData.Buff[3], 64);
+	  if (compression) {
+		  int clen = compress(numRows*NUM_COLS, &mlxTemp[startRow*NUM_COLS], &AppData.Buff[3], 64);
 
-	  vcom_Send("Compressed len %d\n", clen);
-	  AppData.Buff[0] = THERMO_IMAGE_ROW_DATA_COMPR | ((thermoFrameCnt >> 8) & 0x3f);
-	  AppData.Buff[1] = thermoFrameCnt & 0xff;
-	  AppData.Buff[2] = startRow;
-	  AppData.BuffSize = 3 +  numRows*NUM_COLS;
+		  vcom_Send("Compressed len %d\n", clen);
+		  AppData.Buff[0] = THERMO_IMAGE_ROW_DATA_COMPR | ((thermoFrameCnt >> 8) & 0x3f);
+		  AppData.Buff[1] = thermoFrameCnt & 0xff;
+		  AppData.Buff[2] = startRow;
+		  AppData.BuffSize = 3 +  clen; // is this right?
+	  } else {
 
+		  for (int i = 0; i < numRows*NUM_COLS; i++) {
+			  AppData.Buff[3 + i] = mlxTemp[startRow*NUM_COLS + i];
+		  }
+		  AppData.Buff[0] = THERMO_IMAGE_ROW_DATA | ((thermoFrameCnt >> 8) & 0x3f);
+		  AppData.Buff[1] = thermoFrameCnt & 0xff;
+		  AppData.Buff[2] = startRow;
+		  AppData.BuffSize = 3 +  numRows*NUM_COLS; // is this right?
+	  }
 	  LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	  HAL_Delay(100);
+
 	  LED_Off( LED_GREEN ) ;
 
 }
@@ -593,8 +608,8 @@ static void OnTxTimerEvent( void )
   {
 #ifdef THERMO_CAMERA
 
-	  if ((cnt++ % 16) == 0) {
-		  uint8_t info[8];
+	  if ((cnt++ % 20) == 0) {
+		  uint8_t info[16];
 		  MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, info);
 
 		  vcom_Send("Frame acquired fId %d max %d, imax %d, jmax %d min %d, imin %d, jmin %d, Tme %d, Tb %d\r\n", thermoFrameCnt, info[0], info[1], info[2], info[3], info[4], info[5], info[6], info[7]);
@@ -606,7 +621,7 @@ static void OnTxTimerEvent( void )
 		  if (rowCounter < 24) {
 			  	  int numRows = 2;
 				  vcom_Send("startRow %2d numRows %2d ", rowCounter, numRows);
-				  SendThermoFrame(rowCounter, numRows);
+				  SendThermoFrame(rowCounter, numRows, 0);
 				  rowCounter += numRows;
 		  }
 	  }
