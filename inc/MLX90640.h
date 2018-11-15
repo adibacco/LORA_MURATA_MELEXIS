@@ -13,12 +13,12 @@
 #define MLX90640_COLS			32
 #define MLX90640_ROWS			24
 #define MIN_ROW					0
-#define MAX_ROW					(MLX90640_ROWS)
+#define MAX_ROW					(MLX90640_ROWS-1)
 #define MIN_COL					0
-#define MAX_COL					(MLX90640_COLS)
+#define MAX_COL					(MLX90640_COLS-1)
 
-#define NEAR_ROW(i, di)			((((i) + (di)) > MIN_ROW)? ((((i) + (di)) < MAX_ROW)? (i) + (di): MAX_ROW): MIN_ROW)
-#define NEAR_COL(j, dj)			((((j) + (dj)) > MIN_COL)? ((((j) + (dj)) < MAX_COL)? (j) + (dj): MAX_COL): MIN_COL)
+#define NEAR_ROW(i, di)			((((i) + (di)) >= MIN_ROW)? ((((i) + (di)) <= MAX_ROW)? (i) + (di): MAX_ROW): MIN_ROW)
+#define NEAR_COL(j, dj)			((((j) + (dj)) >= MIN_COL)? ((((j) + (dj)) <= MAX_COL)? (j) + (dj): MAX_COL): MIN_COL)
 
 
 #define TA_SHIFT				8

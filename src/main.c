@@ -56,10 +56,13 @@
 #include "MLX90640_I2C_Driver.h"
 #include "MLX90640.h"
 #include "compress.h"
+#include "scheduler.h"
+
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-
+#define THERMO_CAMERA				1
+#define IR_SENSOR_CONTROL_PIN		1
 /*!
  * CAYENNE_LPP is myDevices Application server.
  */
@@ -73,7 +76,7 @@
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
  */
-#define APP_TX_DUTYCYCLE                            5000
+#define APP_TX_DUTYCYCLE                            6000
 /*!
  * LoRaWAN Adaptive Data Rate
  * @note Please note that when ADR is enabled the end-device should be static
@@ -83,7 +86,7 @@
  * LoRaWAN Default data Rate Data Rate
  * @note Please note that LORAWAN_DEFAULT_DATA_RATE is used only when ADR is disabled 
  */
-#define LORAWAN_DEFAULT_DATA_RATE DR_5
+#define LORAWAN_DEFAULT_DATA_RATE DR_0
 /*!
  * LoRaWAN application port
  * @note do not use 224. It is reserved for certification
@@ -102,13 +105,23 @@
  */
 #define LORAWAN_APP_DATA_BUFF_SIZE                           128
 
-#define THERMO_CAMERA
 #define TA_SHIFT	8
 #define NUM_ROWS 	24
 #define NUM_COLS 	32
 #define INFO_FRAME						0xc0
 #define THERMO_IMAGE_ROW_DATA			0x80
 #define THERMO_IMAGE_ROW_DATA_COMPR		0x40
+
+
+typedef enum
+{
+	IDLE,
+	IR_OFF,
+	IR_ON,
+	THERMO_FRAME_HEADER_SEND,
+	THERMO_FRAMES_SENDING,
+	WAITING
+}   thermotask_t;
 
 /*!
  * User application data
@@ -117,13 +130,10 @@ static uint8_t AppDataBuff[LORAWAN_APP_DATA_BUFF_SIZE];
 extern I2C_HandleTypeDef hi2c1;
 
 
-static uint16_t*	mlxFrame = NULL;
 uint8_t 			mlxTemp[NUM_ROWS*NUM_COLS];
 
 static int cnt = 0;
 static uint16_t thermoFrameCnt = 0;
-
-static int rowCounter = NUM_ROWS;
 
 
 /*!
@@ -150,7 +160,7 @@ static void LORA_TxNeeded ( void );
 static void Send( void );
 static void SendThermoFrame(int, int, int);
 static void SendFrameInfo(uint8_t*);
-static void SendIdentifier( void );
+static void SendCustomInfo( void );
 
 /* start the tx process*/
 static void LoraStartTx(TxEventType_t EventType);
@@ -193,8 +203,26 @@ static  LoRaParam_t LoRaParamInit= {LORAWAN_ADR_STATE,
                                     LORAWAN_DEFAULT_DATA_RATE,  
                                     LORAWAN_PUBLIC_NETWORK};
 
-/* Private functions ---------------------------------------------------------*/
 
+static state_t ThermoFrame_TickFct(state_t state);
+
+
+/* Private functions ---------------------------------------------------------*/
+void IR_Config_Enable_Pin()
+{
+	  GPIO_InitTypeDef  GPIO_InitStruct;
+
+	  /* Enable the GPIO_LED Clock */
+	  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+	  /* Configure the GPIO_LED pin */
+	  GPIO_InitStruct.Pin = GPIO_PIN_12;
+	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
 /**
   * @brief  Main program
   * @param  None
@@ -218,9 +246,9 @@ int main( void )
   HW_Init();
   
   /* USER CODE BEGIN 1 */
-  LED_On( LED_RED2 ) ;
-  HAL_Delay(1000);
-  LED_Off( LED_RED2 ) ;
+#ifdef IR_SENSOR_CONTROL_PIN
+  IR_Config_Enable_Pin();
+#endif
 
   /* USER CODE END 1 */
   
@@ -229,13 +257,20 @@ int main( void )
   
   FLASH_If_Init();
 
+  #ifdef THERMO_CAMERA
+
+
+  #ifdef IR_SENSOR_CONTROL_PIN
+  // Enable IR sensor
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+  #endif
+
   MLX90640_I2CInit();
 
   uint16_t reg;
 
-#ifdef THERMO_CAMERA
   MLX90640_I2CRead(MLX90640_I2C_ADDR, 0x800D, 1, &reg);
-  if (reg != 0xffff) {
+  if ((reg != 0xffff) && (reg != 0x0000)) {
 
 
 	  MLX90640_I2CWrite(MLX90640_I2C_ADDR, 0x800D, 0x1801);
@@ -256,21 +291,40 @@ int main( void )
 	  vcom_Send("No sensor detected\n");
 
   }
-  mlxFrame = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_FRAME_SIZE);
+ // mlxFrame = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_FRAME_SIZE);
+  {
+	 uint16_t mlxFrame[MLX90640_FRAME_SIZE] __attribute__((aligned(16)));
 
-  MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, NULL);
+     MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, NULL);
+  }
 #endif
+
+#ifdef IR_SENSOR_CONTROL_PIN
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+#endif
+
+#ifdef TX_CW
+  Radio.SetTxContinuousWave(868000000 , 14, 60);
+  while (1);
+#endif
+
 
   /* Configure the Lora Stack*/
   LORA_Init( &LoRaMainCallbacks, &LoRaParamInit);
-  
+
+
   PRINTF("VERSION: %X\n\r", VERSION);
   
   LORA_Join();
   
+  initTask(0, 5, ThermoFrame_TickFct, IDLE, 0);
+
 
   LoraStartTx ( TX_ON_TIMER) ;
   LoraStartTx ( TX_ON_EVENT);
+
+
+
   while( 1 )
   {
     DISABLE_IRQ( );
@@ -302,7 +356,6 @@ static void SendFrameInfo(uint8_t* info)
 	  LED_On( LED_BLUE ) ;
 	  AppData.Port = LORAWAN_APP_PORT;
 
-
 	  thermoFrameCnt =  (thermoFrameCnt >= 0x3fff)? 0 : thermoFrameCnt + 1;
 
 	  int j = 0;
@@ -331,10 +384,12 @@ static void SendThermoFrame(int startRow, int numRows, int compression)
 {
 	  LED_On( LED_GREEN ) ;
 	  AppData.Port = LORAWAN_APP_PORT;
+
 	  /*
 	  uint8_t aux[] = { 46,  44,  44,  43,  43,  43,  44,  43,   44,  44,  45,  44,  45,  45,  46,  45,  45,  45,  45,  43,  43,  42,  42,  41,  41,  41,  42,  40,  41,  41,  43,  43,
 	  			        46,  45,  45,  45,  44,  45,  45,  46,   46,  47,  48,  49,  49,  50,  50,  51,  50,  50,  49,  50,  48,  47,  45,  46,  43,  43,  42,  43,  42,  42,  42,  43 };
-	  */
+
+	   */
 
 	  if (compression) {
 		  int clen = compress(numRows*NUM_COLS, &mlxTemp[startRow*NUM_COLS], &AppData.Buff[3], 64);
@@ -361,7 +416,7 @@ static void SendThermoFrame(int startRow, int numRows, int compression)
 
 }
 
-static void SendIdentifier(void) {
+static void SendCustomInfo(void) {
 
 	  if ( LORA_JoinStatus () != LORA_SET)
 	  {
@@ -373,13 +428,30 @@ static void SendIdentifier(void) {
 	  LED_On( LED_RED2 ) ;
 
 	  AppData.Port = LORAWAN_APP_PORT;
+	  if (false) {
+		  char* s = "Thermo Camera Anas";
+		  strcpy(&AppData.Buff[1], s);
+		  AppData.Buff[0] = 0x00;
+		  AppData.BuffSize = strlen(s)+1;
+		  LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	  }
 
-	  char* s = "Thermo Camera Anas";
-	  strcpy(&AppData.Buff[1], s);
-	  AppData.Buff[0] = 0x00;
-	  AppData.BuffSize = strlen(s)+1;
-	  LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	  if (true) {
+		  unsigned char adeunisTempFrame[] = { 0x43, 0xa2, 0xd1, 0x01, 0x5e, 0x82, 0xff, 0x06, 0x00, 0x00 };
 
+
+		  strcpy(&AppData.Buff[0], adeunisTempFrame);
+
+		  int16_t t = (rand()*1000.0f)/RAND_MAX - 500;
+		  AppData.Buff[3] = t >> 8;
+		  AppData.Buff[4] = t & 0xff;
+		  t =  (rand()*1000.0f)/RAND_MAX - 500;
+		  AppData.Buff[6] = t >> 8;
+		  AppData.Buff[7] = t & 0xff;
+
+		  AppData.BuffSize = sizeof(adeunisTempFrame);
+		  LORA_send( &AppData, LORAWAN_DEFAULT_CONFIRM_MSG_STATE);
+	  }
 	  LED_Off( LED_RED2 ) ;
 
 }
@@ -603,39 +675,99 @@ static void LORA_RxData( lora_AppData_t *AppData )
 
 static void OnTxTimerEvent( void )
 {
-
-  if ( LORA_JoinStatus () == LORA_SET)
-  {
-#ifdef THERMO_CAMERA
-
-	  if ((cnt++ % 20) == 0) {
-		  uint8_t info[16];
-		  MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, info);
-
-		  vcom_Send("Frame acquired fId %d max %d, imax %d, jmax %d min %d, imin %d, jmin %d, Tme %d, Tb %d\r\n", thermoFrameCnt, info[0], info[1], info[2], info[3], info[4], info[5], info[6], info[7]);
-		  rowCounter = 0;
-		  SendFrameInfo(info);
-
-	  }
-	  else {
-		  if (rowCounter < 24) {
-			  	  int numRows = 2;
-				  vcom_Send("startRow %2d numRows %2d ", rowCounter, numRows);
-				  SendThermoFrame(rowCounter, numRows, 0);
-				  rowCounter += numRows;
-		  }
-	  }
-#endif
-  }
-  else
-  {
-	/*Not joined, try again later*/
-	LORA_Join();
-  }
-
-
+  schedule();
+  cnt++;
   /*Wait for next tx slot*/
   TimerStart( &TxTimer);
+
+}
+
+
+static state_t ThermoFrame_TickFct(state_t state) {
+
+	state_t newState = { IDLE, 0 };
+
+	if ( LORA_JoinStatus () == LORA_SET)
+	{
+		switch (state.state0) {
+
+		case IDLE:
+		{
+			newState.state0 = WAITING;
+			newState.state1 = 0;
+		}
+		break;
+		case WAITING:
+		{
+			if (state.state1 < 2) {
+				newState.state0 = WAITING;
+				newState.state1 = state.state1 + 1;
+			}
+			else {
+				newState.state0 = IR_ON;
+				newState.state1 = 0;
+			}
+
+		}
+		break;
+
+		case IR_ON:
+		{
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+
+			if (state.state1 < 3) {
+				newState.state0 = IR_ON;
+				newState.state1 = state.state1 + 1;
+			}
+			else {
+				newState.state0 = THERMO_FRAME_HEADER_SEND;
+				newState.state1 = 0;
+			}
+		}
+		break;
+
+		case THERMO_FRAME_HEADER_SEND:
+		{
+			uint8_t info[16];
+			uint16_t mlxFrame[MLX90640_FRAME_SIZE] __attribute__((aligned(16)));
+
+			MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, info);
+
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+
+			vcom_Send("Frame acquired fId %d max %d, imax %d, jmax %d min %d, imin %d, jmin %d, Tme %d, Tb %d\r\n", thermoFrameCnt, info[0], info[1], info[2], info[3], info[4], info[5], info[6], info[7]);
+			SendFrameInfo(info);
+
+			newState.state0 = THERMO_FRAMES_SENDING;
+			newState.state1 = 0; // This acts like rowCounter
+
+		}
+			break;
+
+		case THERMO_FRAMES_SENDING:
+		{
+			if (state.state1 < 24) {
+				int numRows = 2;
+				vcom_Send("startRow %2d numRows %2d ", state.state1, numRows);
+				SendThermoFrame(state.state1, numRows, 0);
+				newState.state0 = THERMO_FRAMES_SENDING;
+				newState.state1 = state.state1 + numRows;
+			} else {
+				newState.state0 = WAITING;
+				newState.state1 = 0;
+			}
+		}
+			break;
+
+		}
+	} else {
+	    LORA_Join();
+
+		newState.state0 = IDLE;
+		newState.state1 = 0;
+	}
+
+	return newState;
 
 }
 
@@ -658,7 +790,7 @@ static void LoraStartTx(TxEventType_t EventType)
     initStruct.Speed = GPIO_SPEED_HIGH;
 
     HW_GPIO_Init( USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, &initStruct );
-    HW_GPIO_SetIrq( USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, 0, SendIdentifier );
+    HW_GPIO_SetIrq( USER_BUTTON_GPIO_PORT, USER_BUTTON_PIN, 0, SendCustomInfo );
   }
 }
 

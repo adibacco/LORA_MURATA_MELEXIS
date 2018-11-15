@@ -69,7 +69,7 @@ int MLX90640_I2CRead(uint8_t slaveAddr, uint16_t startAddress, uint16_t nMemAddr
     int cnt = 0;
     int i = 0;
     char cmd[2] = {0,0};
-    char i2cData[1664] = {0};
+    char i2cData[1664] __attribute__((aligned(16))) = {0};
     uint16_t *p;
     
     p = data;

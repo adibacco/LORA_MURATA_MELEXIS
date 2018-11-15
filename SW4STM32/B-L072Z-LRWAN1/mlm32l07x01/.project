@@ -146,92 +146,97 @@
 			<locationURI>PARENT-1-PROJECT_LOC/startup_stm32l072xx.s</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/MLX90640.c</name>
+			<name>Projects/IRNode/MLX90640.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/MLX90640.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/MLX90640_API.c</name>
+			<name>Projects/IRNode/MLX90640_API.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/MLX90640_API.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/MLX90640_I2C_Driver.c</name>
+			<name>Projects/IRNode/MLX90640_I2C_Driver.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/MLX90640_I2C_Driver.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/bsp.c</name>
+			<name>Projects/IRNode/bsp.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/bsp.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/compress.c</name>
+			<name>Projects/IRNode/compress.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/compress.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/debug.c</name>
+			<name>Projects/IRNode/debug.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/debug.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/flash_if.c</name>
+			<name>Projects/IRNode/flash_if.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/flash_if.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/hw_gpio.c</name>
+			<name>Projects/IRNode/hw_gpio.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/hw_gpio.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/hw_i2c.c</name>
+			<name>Projects/IRNode/scheduler.c</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/src/scheduler.c</locationURI>
+		</link>
+		<link>
+			<name>Projects/IRNode/hw_i2c.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/hw_i2c.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/hw_rtc.c</name>
+			<name>Projects/IRNode/hw_rtc.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/hw_rtc.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/hw_spi.c</name>
+			<name>Projects/IRNode/hw_spi.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/hw_spi.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/i2c_api.c</name>
+			<name>Projects/IRNode/i2c_api.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/i2c_api.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/main.c</name>
+			<name>Projects/IRNode/main.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/main.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/mlm32l0xx_hal_msp.c</name>
+			<name>Projects/IRNode/mlm32l0xx_hal_msp.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/mlm32l0xx_hal_msp.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/mlm32l0xx_hw.c</name>
+			<name>Projects/IRNode/mlm32l0xx_hw.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/mlm32l0xx_hw.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/mlm32l0xx_it.c</name>
+			<name>Projects/IRNode/mlm32l0xx_it.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/mlm32l0xx_it.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/sample_data.c</name>
+			<name>Projects/IRNode/sample_data.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/sample_data.c</locationURI>
 		</link>
 		<link>
-			<name>Projects/YNode/vcom.c</name>
+			<name>Projects/IRNode/vcom.c</name>
 			<type>1</type>
 			<locationURI>PARENT-3-PROJECT_LOC/src/vcom.c</locationURI>
 		</link>
