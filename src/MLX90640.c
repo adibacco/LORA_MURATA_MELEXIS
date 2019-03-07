@@ -26,7 +26,7 @@ int MLX90640_GetEEPROM() {
 	uint32_t crcEeFlash = 0;
 	int ret = 0;
 
-	uint16_t* eeMLX90640 = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_EEPROM_SIZE);
+	uint16_t eeMLX90640[MLX90640_EEPROM_SIZE];
 
 	MLX90640_DumpEE(MLX90640_I2C_ADDR, eeMLX90640);
 	int error = (eeMLX90640[15] != 0xbe33);
@@ -51,14 +51,12 @@ int MLX90640_GetEEPROM() {
 		}
 	}
 
-	free(eeMLX90640);
-
 	return ret;
 
 }
 
 void MLX90640_GetParameters() {
-	paramsMLX90640* params = (paramsMLX90640*) memalign(16, sizeof(paramsMLX90640));
+	paramsMLX90640 params;
 	uint16_t* eeData;
 
 #ifndef MLX90640_SAMPLE_EEPROM
@@ -67,14 +65,12 @@ void MLX90640_GetParameters() {
 	eeData = eeData_sample;
 #endif
 
-	MLX90640_ExtractParameters(eeData, params);
+	MLX90640_ExtractParameters(eeData, &params);
 
 	uint32_t address = (uint32_t) &mlx90640_params;
 	int size = sizeof(paramsMLX90640);
 	FLASH_If_Erase(address, size);
-	FLASH_If_Write(address, params, size);
-
-	free(params);
+	FLASH_If_Write(address, &params, size);
 
 }
 

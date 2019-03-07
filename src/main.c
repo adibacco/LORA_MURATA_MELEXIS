@@ -62,7 +62,9 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define THERMO_CAMERA				1
-#define IR_SENSOR_CONTROL_PIN		1
+#define IR_SENSOR_CTRL_PIN			1
+#define IR_SENSOR_PIN_NUM			GPIO_PIN_2
+#define IR_SENSOR_PIN_PORT			GPIOB
 /*!
  * CAYENNE_LPP is myDevices Application server.
  */
@@ -130,7 +132,7 @@ static uint8_t AppDataBuff[LORAWAN_APP_DATA_BUFF_SIZE];
 extern I2C_HandleTypeDef hi2c1;
 
 
-uint8_t 			mlxTemp[NUM_ROWS*NUM_COLS];
+uint8_t			mlxTemp[NUM_ROWS][NUM_COLS];
 
 static int cnt = 0;
 static uint16_t thermoFrameCnt = 0;
@@ -216,7 +218,7 @@ void IR_Config_Enable_Pin()
 	  __HAL_RCC_GPIOB_CLK_ENABLE();
 
 	  /* Configure the GPIO_LED pin */
-	  GPIO_InitStruct.Pin = GPIO_PIN_12;
+	  GPIO_InitStruct.Pin = IR_SENSOR_PIN_NUM;
 	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	  GPIO_InitStruct.Pull = GPIO_NOPULL;
 	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -246,7 +248,7 @@ int main( void )
   HW_Init();
   
   /* USER CODE BEGIN 1 */
-#ifdef IR_SENSOR_CONTROL_PIN
+#ifdef IR_SENSOR_CTRL_PIN
   IR_Config_Enable_Pin();
 #endif
 
@@ -260,9 +262,9 @@ int main( void )
   #ifdef THERMO_CAMERA
 
 
-  #ifdef IR_SENSOR_CONTROL_PIN
+  #ifdef IR_SENSOR_CTRL_PIN
   // Enable IR sensor
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(IR_SENSOR_PIN_PORT, IR_SENSOR_PIN_NUM, GPIO_PIN_SET);
   #endif
 
   MLX90640_I2CInit();
@@ -291,7 +293,7 @@ int main( void )
 	  vcom_Send("No sensor detected\n");
 
   }
- // mlxFrame = (uint16_t*) memalign(16, sizeof(uint16_t)*MLX90640_FRAME_SIZE);
+
   {
 	 uint16_t mlxFrame[MLX90640_FRAME_SIZE] __attribute__((aligned(16)));
 
@@ -299,8 +301,8 @@ int main( void )
   }
 #endif
 
-#ifdef IR_SENSOR_CONTROL_PIN
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+#ifdef IR_SENSOR_CTRL_PIN
+  HAL_GPIO_WritePin(IR_SENSOR_PIN_PORT, IR_SENSOR_PIN_NUM, GPIO_PIN_RESET);
 #endif
 
 #ifdef TX_CW
@@ -713,7 +715,7 @@ static state_t ThermoFrame_TickFct(state_t state) {
 
 		case IR_ON:
 		{
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(IR_SENSOR_PIN_PORT, IR_SENSOR_PIN_NUM, GPIO_PIN_SET);
 
 			if (state.state1 < 3) {
 				newState.state0 = IR_ON;
@@ -733,7 +735,7 @@ static state_t ThermoFrame_TickFct(state_t state) {
 
 			MLX90640_GetPixelsTemp(mlxFrame, mlxTemp, info);
 
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(IR_SENSOR_PIN_PORT, IR_SENSOR_PIN_NUM, GPIO_PIN_RESET);
 
 			vcom_Send("Frame acquired fId %d max %d, imax %d, jmax %d min %d, imin %d, jmin %d, Tme %d, Tb %d\r\n", thermoFrameCnt, info[0], info[1], info[2], info[3], info[4], info[5], info[6], info[7]);
 			SendFrameInfo(info);
